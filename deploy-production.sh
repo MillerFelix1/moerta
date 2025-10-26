@@ -164,8 +164,25 @@ echo ""
 # ===== 步骤 6: 构建镜像 =====
 print_step "步骤 6/8: 构建 Docker 镜像"
 
-print_info "开始构建（这可能需要几分钟）..."
-if docker compose build --no-cache 2>&1 | tee /tmp/docker-build.log; then
+# 询问是否使用缓存
+echo ""
+print_info "构建选项："
+echo "  1) 使用缓存构建（快速，推荐）"
+echo "  2) 完全重建，不使用缓存（慢，但确保最新）"
+echo ""
+read -p "$(echo -e ${CYAN}选择 [1]: ${NC})" -n 1 -r
+echo ""
+BUILD_OPTION=${REPLY:-1}
+
+if [ "$BUILD_OPTION" = "2" ]; then
+    print_info "开始完全重建（这需要 3-5 分钟）..."
+    BUILD_FLAGS="--no-cache"
+else
+    print_info "使用缓存构建（这需要 30-60 秒）..."
+    BUILD_FLAGS=""
+fi
+
+if docker compose build $BUILD_FLAGS 2>&1 | tee /tmp/docker-build.log; then
     print_success "镜像构建成功"
 else
     print_error "镜像构建失败！查看日志: /tmp/docker-build.log"

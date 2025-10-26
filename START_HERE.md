@@ -45,7 +45,22 @@
 
 ---
 
-## 🚀 三步部署（最简单）
+## 💻 本地开发（推荐先本地测试）⭐
+
+**在部署到服务器前，建议先在本地测试！**
+
+### Windows 用户（超简单）
+
+1. 确保 **Docker Desktop** 正在运行
+2. 双击 **`local-start.bat`**
+3. 等待启动完成
+4. 浏览器打开 http://localhost
+
+**详细指南：** 📖 [本地开发快速入门.md](本地开发快速入门.md)
+
+---
+
+## 🚀 三步部署到服务器
 
 ### 步骤 1: 上传代码到服务器
 
@@ -176,6 +191,27 @@ docker compose logs -f
 
 ## 🔧 常用命令
 
+### 🔄 更新代码（推荐智能方式）
+```bash
+# ⭐ 智能更新（自动判断，最快速度）
+bash smart-update.sh
+
+# 手动更新（按需选择）
+# 前端更新（3秒）
+cp frontend/index-optimized.html frontend/index.html
+docker compose restart nginx
+
+# 后端更新（30-60秒，使用缓存）
+docker compose build backend
+docker compose up -d backend
+
+# 完整重建（3-5分钟，无缓存）
+docker compose build --no-cache
+docker compose up -d
+```
+
+**💡 提示：** 查看 [WHY_REBUILD.md](WHY_REBUILD.md) 了解为什么不需要每次都重建
+
 ### 服务管理
 ```bash
 docker compose ps            # 查看状态
@@ -195,18 +231,6 @@ docker compose logs --tail 50 nginx    # Nginx最后50行
 ```bash
 bash check-system.sh         # 完整检查
 curl http://localhost/       # 快速测试
-```
-
-### 更新代码
-```bash
-# 快速更新前端
-cp frontend/index-optimized.html frontend/index.html
-docker compose restart nginx
-
-# 完整重建
-docker compose down
-docker compose build --no-cache
-docker compose up -d
 ```
 
 ---

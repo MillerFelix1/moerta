@@ -74,21 +74,40 @@ docker compose logs -f
 
 ## 🔄 更新已运行的服务
 
-如果服务已在运行，只需更新代码：
+### ⚡ 智能更新（推荐）
 
 ```bash
-# 快速更新（不重建镜像）
+# 自动检测变化并智能更新
+cd /var/www/shangyu.icu/yuanshi
+bash smart-update.sh
+```
+
+**智能脚本会自动：**
+- ✅ 检测文件变化
+- ✅ 只在必要时重建镜像
+- ✅ 自动选择最快的更新方式
+- ✅ 验证更新结果
+
+### 📋 手动更新（按需选择）
+
+```bash
+# 场景 1: 只改了前端（最快，3-5秒）
 cd /var/www/shangyu.icu/yuanshi
 cp frontend/index-optimized.html frontend/index.html
 docker compose restart nginx
 
-# 完整更新（重建镜像）
+# 场景 2: 只改了后端代码（有缓存，30-60秒）
 cd /var/www/shangyu.icu/yuanshi
-cp frontend/index-optimized.html frontend/index.html
-docker compose down
-docker compose build --no-cache
+docker compose build backend
+docker compose up -d backend
+
+# 场景 3: 改了依赖或需要完全重建（3-5分钟）
+cd /var/www/shangyu.icu/yuanshi
+docker compose build --no-cache backend
 docker compose up -d
 ```
+
+**💡 提示：** 查看 [UPDATE_STRATEGY.md](UPDATE_STRATEGY.md) 了解详细的更新策略
 
 ---
 

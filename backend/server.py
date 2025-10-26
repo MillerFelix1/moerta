@@ -3,6 +3,7 @@ FastAPI 后端服务
 提供阿里百炼智能体API调用和历史记录管理
 """
 import os
+import json
 import uuid
 from typing import Optional, Dict, Any
 from http import HTTPStatus
@@ -28,7 +29,8 @@ except ImportError:
 import database
 
 # 加载环境变量
-load_dotenv()
+load_dotenv('.env')
+load_dotenv('/app/.env')  # Docker 容器中的路径
 
 app = FastAPI(title="数据解构专家测试平台")
 
@@ -43,7 +45,7 @@ app.add_middleware(
 
 # 配置
 API_KEY = os.getenv("DASHSCOPE_API_KEY")
-APP_ID = os.getenv("APP_ID")
+APP_ID = os.getenv("DASHSCOPE_APP_ID")
 
 
 class ChatRequest(BaseModel):
@@ -146,27 +148,30 @@ async def chat(request: ChatRequest):
                     for response in responses:
                         if response.status_code != HTTPStatus.OK:
                             error_data = {
-                                "error": True,
-                                "code": response.status_code,
+                                "error": "true",
+                                "code": str(response.status_code),
                                 "message": response.message,
                                 "request_id": response.request_id
                             }
-                            yield f"data: {str(error_data)}\n\n"
+                            yield f"data: {json.dumps(error_data, ensure_ascii=False)}\n\n"
                             break
+                        
+                        # 获取文本内容
+                        current_text = response.output.text
                         
                         # 累积完整内容（用于保存到数据库）
                         if not request.incremental_output:
-                            full_text = response.output.text
+                            full_text = current_text
                             if hasattr(response.output, 'thoughts'):
                                 full_thoughts = response.output.thoughts or ""
                         else:
-                            full_text += response.output.text
+                            full_text += current_text
                             if hasattr(response.output, 'thoughts') and response.output.thoughts:
                                 full_thoughts += response.output.thoughts
                         
                         # 构造响应数据
                         chunk_data = {
-                            "text": response.output.text,
+                            "text": current_text,
                             "session_id": session_id,
                             "finish_reason": getattr(response.output, 'finish_reason', None)
                         }
@@ -174,7 +179,7 @@ async def chat(request: ChatRequest):
                         if request.has_thoughts and hasattr(response.output, 'thoughts'):
                             chunk_data["thoughts"] = response.output.thoughts
                         
-                        yield f"data: {str(chunk_data)}\n\n"
+                        yield f"data: {json.dumps(chunk_data, ensure_ascii=False)}\n\n"
                     
                     # 保存助手回复到数据库
                     await database.save_message(
@@ -191,10 +196,10 @@ async def chat(request: ChatRequest):
                     
                 except Exception as e:
                     error_data = {
-                        "error": True,
+                        "error": "true",
                         "message": str(e)
                     }
-                    yield f"data: {str(error_data)}\n\n"
+                    yield f"data: {json.dumps(error_data, ensure_ascii=False)}\n\n"
             
             return StreamingResponse(
                 generate(),

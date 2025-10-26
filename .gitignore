@@ -44,3 +44,11 @@ backend/data/
 .DS_Store
 Thumbs.db
 
+# Docker 构建缓存
+.last_backend_hash
+
+# 部署临时文件
+/tmp/docker-build.log
+diagnostic.txt
+diagnostic-report.txt
+

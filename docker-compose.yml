@@ -23,6 +23,9 @@ services:
       - HOST=0.0.0.0
       - PORT=8000
       - PYTHONUNBUFFERED=1
+      - DASHSCOPE_API_KEY=sk-31d4c4895a6d4a959fa9f4ff029515ac
+      - DASHSCOPE_APP_ID=6596ab6827f445f08abc4194be485bc1
+      - DATABASE_PATH=./data/sessions.db
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8000/ || exit 1"]
       interval: 30s
@@ -39,7 +42,7 @@ services:
 
   # ===== Nginx 反向代理 =====
   nginx:
-    image: nginx:1.25-alpine
+    image: nginx:alpine
     container_name: memory-reconstruction-nginx
     restart: always
     ports:

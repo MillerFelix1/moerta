@@ -1,0 +1,95 @@
+{
+  "test_cases": [
+    {
+      "id": 1,
+      "category": "JSON数据解析",
+      "title": "用户信息JSON解析",
+      "input": "解析以下JSON数据并提取关键信息：\n{\n  \"user\": {\n    \"id\": 12345,\n    \"name\": \"张三\",\n    \"email\": \"zhangsan@example.com\",\n    \"profile\": {\n      \"age\": 28,\n      \"city\": \"北京\",\n      \"interests\": [\"编程\", \"阅读\", \"旅游\"]\n    }\n  }\n}",
+      "expected": "结构化提取用户ID、姓名、年龄、城市和兴趣"
+    },
+    {
+      "id": 2,
+      "category": "编码转换",
+      "title": "Base64编码",
+      "input": "将"数据解构专家"转换为Base64编码",
+      "expected": "返回Base64编码结果"
+    },
+    {
+      "id": 3,
+      "category": "文本结构化",
+      "title": "订单信息提取",
+      "input": "从以下文本中提取结构化数据：\n订单号：20240125001\n客户：王芳\n金额：￥1,288.00\n日期：2024年1月25日\n商品：Python开发指南（2本）+ JavaScript高级编程（1本）",
+      "expected": "提取订单号、客户、金额、日期和商品列表"
+    },
+    {
+      "id": 4,
+      "category": "URL解析",
+      "title": "URL参数解构",
+      "input": "解构并分析以下URL：\nhttps://example.com/api/v1/users?id=123&name=张三&token=abc123xyz&timestamp=1706174400&sort=desc",
+      "expected": "提取协议、域名、路径和所有查询参数"
+    },
+    {
+      "id": 5,
+      "category": "日志解析",
+      "title": "系统日志分析",
+      "input": "分析并结构化以下日志数据：\n[2024-01-25 14:30:15] INFO - User login successful | UserID: 1001 | IP: 192.168.1.100 | SessionID: xyz789 | UserAgent: Mozilla/5.0",
+      "expected": "提取时间戳、日志级别、事件类型、用户ID、IP地址等"
+    },
+    {
+      "id": 6,
+      "category": "多层编码",
+      "title": "JWT Token解析",
+      "input": "解析JWT Token结构：\neyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c\n\n请分析Header、Payload和Signature三个部分",
+      "expected": "解码并分析JWT的三部分结构"
+    },
+    {
+      "id": 7,
+      "category": "数据转换",
+      "title": "时间戳转换",
+      "input": "将以下时间戳转换为人类可读格式：\n1706174400 (Unix时间戳)\n2024-01-25T14:30:15Z (ISO 8601)\n20240125143015 (YYYYMMDDHHmmss)",
+      "expected": "转换为标准日期时间格式"
+    },
+    {
+      "id": 8,
+      "category": "复杂嵌套",
+      "title": "嵌套数据结构解析",
+      "input": "解析以下复杂嵌套数据：\n{\n  \"company\": {\n    \"name\": \"科技公司\",\n    \"departments\": [\n      {\n        \"name\": \"研发部\",\n        \"employees\": [\n          {\"id\": 1, \"name\": \"张三\", \"skills\": [\"Python\", \"Java\"]},\n          {\"id\": 2, \"name\": \"李四\", \"skills\": [\"JavaScript\", \"React\"]}\n        ]\n      },\n      {\n        \"name\": \"市场部\",\n        \"employees\": [\n          {\"id\": 3, \"name\": \"王五\", \"skills\": [\"营销\", \"数据分析\"]}\n        ]\n      }\n    ]\n  }\n}",
+      "expected": "扁平化处理并统计员工数量和技能分布"
+    },
+    {
+      "id": 9,
+      "category": "正则匹配",
+      "title": "邮箱和电话提取",
+      "input": "从以下文本中提取所有邮箱和电话号码：\n联系方式：张三 zhangsan@example.com 手机：13800138000\n李四的邮箱是 lisi@company.cn，办公电话 010-12345678\n王五: wangwu@gmail.com / 138-0013-8001",
+      "expected": "提取所有邮箱地址和电话号码"
+    },
+    {
+      "id": 10,
+      "category": "数据清洗",
+      "title": "脏数据清理",
+      "input": "清理并标准化以下数据：\n姓名：  张三   \n年龄：28岁\n电话：138 0013 8000\n邮箱：ZHANGSAN@EXAMPLE.COM\n城市：北京市朝阳区",
+      "expected": "去除多余空格、统一格式、标准化数据"
+    },
+    {
+      "id": 11,
+      "category": "向量化准备",
+      "title": "文本向量化预处理",
+      "input": "将以下文本预处理为适合向量化存储的格式：\n"人工智能（Artificial Intelligence, AI）是计算机科学的一个分支，致力于创建能够模拟、延伸和扩展人类智能的系统。"\n\n请进行分词、去停用词、提取关键信息",
+      "expected": "分词、清理、提取关键词，准备向量化"
+    },
+    {
+      "id": 12,
+      "category": "多格式转换",
+      "title": "JSON转换为其他格式",
+      "input": "将以下JSON转换为CSV和XML格式：\n[\n  {\"name\": \"张三\", \"age\": 28, \"city\": \"北京\"},\n  {\"name\": \"李四\", \"age\": 32, \"city\": \"上海\"},\n  {\"name\": \"王五\", \"age\": 25, \"city\": \"深圳\"}\n]",
+      "expected": "提供CSV和XML两种格式的转换结果"
+    }
+  ],
+  "usage_tips": [
+    "可以直接复制上述测试用例的input内容发送给智能体",
+    "建议从简单的测试用例开始，逐步测试复杂场景",
+    "开启"显示思考"功能可以查看AI的解析过程",
+    "使用流式输出获得更好的交互体验"
+  ]
+}
+

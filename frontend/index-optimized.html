@@ -560,7 +560,6 @@
                     isLoading: false,
                     sidebarOpen: false,
                     showSwipeHint: true,
-                    hasFullscreened: false,
                     apiBaseUrl: window.location.hostname === 'localhost' ? 'http://localhost:8000' : ''
                 };
             },
@@ -710,18 +709,21 @@
                     this.currentSessionId = null;
                     this.messages = [];
                     this.sidebarOpen = false;
-                    this.hasFullscreened = false;
                 },
 
                 async sendMessage() {
                     const userMessage = this.inputText.trim();
                     if (!userMessage || this.isLoading) return;
 
-                    // 📱 移动端：发送消息时全屏
-                    if (!this.hasFullscreened) {
-                        this.hasFullscreened = true;
-                        try {
-                            const elem = document.documentElement;
+                    // 📱 移动端：每次发送消息都尝试进入阅读模式
+                    try {
+                        const elem = document.documentElement;
+                        // 检查是否已经在全屏模式
+                        if (!document.fullscreenElement && 
+                            !document.webkitFullscreenElement && 
+                            !document.mozFullScreenElement && 
+                            !document.msFullscreenElement) {
+                            // 未全屏，尝试进入
                             if (elem.requestFullscreen) {
                                 await elem.requestFullscreen();
                             } else if (elem.webkitRequestFullscreen) {
@@ -731,9 +733,10 @@
                             } else if (elem.msRequestFullscreen) {
                                 await elem.msRequestFullscreen();
                             }
-                        } catch (e) {
-                            console.log('全屏请求:', e.message);
+                            console.log('✅ 进入阅读模式');
                         }
+                    } catch (e) {
+                        console.log('阅读模式请求:', e.message);
                     }
 
                     this.inputText = '';

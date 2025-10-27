@@ -314,8 +314,8 @@
         .input-area {
             padding: 16px;
             padding-bottom: max(16px, env(safe-area-inset-bottom));
-            background: var(--surface);
-            border-top: 1px solid var(--border);
+            background: transparent; /* 改为透明，可以看到下方内容 */
+            border-top: none;
         }
 
         .input-area.centered {
@@ -329,11 +329,12 @@
             display: flex;
             gap: 12px;
             align-items: flex-end;
-            background: var(--bg);
+            background: var(--surface); /* 输入框本身保持白色背景 */
             border: 2px solid var(--border);
             border-radius: 24px;
             padding: 10px 16px;
             transition: all 0.3s;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); /* 添加阴影提升层次 */
         }
 
         .input-wrapper:focus-within {
@@ -613,6 +614,7 @@
                     sidebarOpen: false,
                     showSwipeHint: true,
                     longPressSessionId: null, // 长按显示删除按钮的会话ID
+                    lastTapTime: 0, // 用于双击检测
                     apiBaseUrl: window.location.hostname === 'localhost' ? 'http://localhost:8000' : ''
                 };
             },
@@ -695,7 +697,6 @@
                 setupMobileGestures() {
                     let touchStartX = 0;
                     let touchStartY = 0;
-                    let lastTapTime = 0;
                     const container = document.querySelector('.main-content');
                     
                     container.addEventListener('touchstart', (e) => {
@@ -709,19 +710,19 @@
                         const touchEndY = e.changedTouches[0].clientY;
                         const deltaX = touchEndX - touchStartX;
                         const deltaY = Math.abs(touchEndY - touchStartY);
-                        const currentTime = new Date().getTime();
-                        const tapInterval = currentTime - lastTapTime;
+                        const currentTime = Date.now();
+                        const tapInterval = currentTime - this.lastTapTime;
                         
-                        // 检测双击（两次点击间隔小于300ms，且移动距离小于10px）
-                        if (tapInterval < 300 && tapInterval > 0 && 
-                            Math.abs(deltaX) < 10 && Math.abs(deltaY) < 10) {
-                            console.log('👆 双击打开侧边栏');
+                        // 检测双击（两次点击间隔小于400ms，且移动距离小于15px）
+                        if (tapInterval < 400 && tapInterval > 50 && 
+                            Math.abs(deltaX) < 15 && Math.abs(deltaY) < 15) {
+                            console.log('👆👆 双击打开侧边栏');
                             this.sidebarOpen = true;
-                            lastTapTime = 0; // 重置，避免三击触发
+                            this.lastTapTime = 0; // 重置，避免三击触发
                             return;
                         }
                         
-                        lastTapTime = currentTime;
+                        this.lastTapTime = currentTime;
                         
                         // 右滑手势
                         if (Math.abs(deltaX) > deltaY && Math.abs(deltaX) > 80) {

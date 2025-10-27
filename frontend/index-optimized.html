@@ -615,46 +615,57 @@
                     
                     // 输入框获得焦点时
                     inputField.addEventListener('focus', () => {
-                        // 立即滚动消息容器到底部
+                        // 先滚动消息容器到底部
                         this.scrollToBottom();
                         
-                        // 等待键盘弹出后再次滚动
+                        // 等待键盘弹出后调整位置
                         setTimeout(() => {
+                            // 再次滚动消息到底部
                             this.scrollToBottom();
                             
-                            // 确保输入区域可见
+                            // 关键：将输入框滚动到可视区域顶部（键盘上方）
                             const inputArea = document.querySelector('.input-area');
                             if (inputArea) {
+                                // 使用 start 让输入框出现在可视区域顶部
                                 inputArea.scrollIntoView({ 
                                     behavior: 'smooth', 
-                                    block: 'end'
+                                    block: 'start'  // 改为 start，输入框在可视区域顶部
                                 });
                             }
-                        }, 300);
+                        }, 350);
                     });
                     
                     // 监听窗口大小变化（键盘弹出/收起）
                     let lastHeight = window.innerHeight;
-                    window.visualViewport?.addEventListener('resize', () => {
-                        const currentHeight = window.visualViewport.height;
+                    const handleViewportChange = () => {
+                        const currentHeight = window.visualViewport?.height || window.innerHeight;
                         
                         if (currentHeight < lastHeight) {
-                            // 键盘弹出 - 滚动到底部显示输入框
+                            // 键盘弹出
                             setTimeout(() => {
                                 this.scrollToBottom();
                                 
                                 const inputArea = document.querySelector('.input-area');
                                 if (inputArea) {
+                                    // 输入框滚动到可视区域顶部
                                     inputArea.scrollIntoView({ 
                                         behavior: 'smooth', 
-                                        block: 'end'
+                                        block: 'start'
                                     });
                                 }
                             }, 100);
                         }
                         
                         lastHeight = currentHeight;
-                    });
+                    };
+                    
+                    // 同时监听两个事件，确保兼容性
+                    if (window.visualViewport) {
+                        window.visualViewport.addEventListener('resize', handleViewportChange);
+                        window.visualViewport.addEventListener('scroll', handleViewportChange);
+                    } else {
+                        window.addEventListener('resize', handleViewportChange);
+                    }
                 },
 
                 renderMarkdown(content) {

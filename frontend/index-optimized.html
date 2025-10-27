@@ -425,6 +425,47 @@
                 0%, 100% { transform: translateX(-50%) translateY(0); }
                 50% { transform: translateX(-50%) translateY(3px); }
             }
+            
+            /* 滑动提示 */
+            .swipe-hint {
+                position: fixed;
+                left: 0;
+                top: 50%;
+                transform: translateY(-50%);
+                padding: 15px 20px 15px 10px;
+                background: linear-gradient(to right, rgba(99, 102, 241, 0.9), rgba(99, 102, 241, 0.7));
+                color: white;
+                font-size: 14px;
+                border-radius: 0 20px 20px 0;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+                z-index: 9999;
+                pointer-events: none;
+                animation: swipe-hint-fade 3s ease-in-out infinite;
+                white-space: nowrap;
+                transition: all 0.5s ease-out;
+            }
+            
+            .swipe-hint::before {
+                content: '👉';
+                margin-right: 8px;
+                display: inline-block;
+                animation: swipe-hint-move 1.5s ease-in-out infinite;
+            }
+            
+            @keyframes swipe-hint-fade {
+                0%, 100% { opacity: 0.8; }
+                50% { opacity: 1; }
+            }
+            
+            @keyframes swipe-hint-move {
+                0%, 100% { transform: translateX(0); }
+                50% { transform: translateX(5px); }
+            }
+            
+            .swipe-hint.hide {
+                opacity: 0;
+                transform: translateY(-50%) translateX(-100%);
+            }
         }
 
         .chat-title {
@@ -1036,6 +1077,13 @@
 
         <!-- 主内容区 -->
         <div class="main-content">
+            <!-- 滑动提示 -->
+            <div class="swipe-hint" 
+                 v-if="showSwipeHint && isMobileDevice()"
+                 :class="{ hide: !showSwipeHint }">
+                向右滑动打开侧边栏
+            </div>
+            
             <!-- 顶部显示区域（点击可显示header） -->
             <div class="header-reveal-zone" 
                  v-if="!headerVisible && isMobileDevice()" 
@@ -1203,7 +1251,10 @@
                     hasTriggeredFullscreen: false,
                     
                     // 移动端顶部栏状态
-                    headerVisible: true
+                    headerVisible: true,
+                    
+                    // 滑动提示
+                    showSwipeHint: true
                 };
             },
             
@@ -1217,6 +1268,13 @@
                 // 移动端不自动聚焦（避免自动弹出键盘）
                 if (!this.isMobileDevice()) {
                     this.focusInput();
+                }
+                
+                // 📱 移动端：5秒后自动隐藏滑动提示
+                if (this.isMobileDevice() && this.showSwipeHint) {
+                    setTimeout(() => {
+                        this.hideSwipeHint();
+                    }, 5000);
                 }
             },
             
@@ -1327,11 +1385,12 @@
                         created_at: new Date().toISOString()
                     });
                     
-                    // 📱 移动端发送消息时，触发全屏、隐藏侧边栏和顶部栏
+                    // 📱 移动端发送消息时，触发全屏、隐藏侧边栏和顶部栏、隐藏提示
                     if (this.isMobileDevice()) {
                         this.triggerFullscreen();  // 回车发送时触发全屏
                         this.sidebarOpen = false;
                         this.hideHeader();
+                        this.hideSwipeHint();  // 隐藏滑动提示
                     }
                     
                     this.isLoading = true;
@@ -1577,12 +1636,14 @@
                 
                 // 请求全屏
                 async requestFullscreen() {
-                    if (!this.isMobileDevice() || this.hasTriggeredFullscreen) {
-                        return; // 非移动设备或已触发过，直接返回
+                    if (!this.isMobileDevice()) {
+                        return; // 非移动设备，直接返回
                     }
                     
                     try {
                         const elem = document.documentElement;
+                        
+                        console.log('🚀 开始请求全屏...');
                         
                         if (elem.requestFullscreen) {
                             await elem.requestFullscreen();
@@ -1594,7 +1655,6 @@
                             await elem.msRequestFullscreen();
                         }
                         
-                        this.hasTriggeredFullscreen = true;
                         console.log('✅ 已进入全屏模式');
                     } catch (error) {
                         console.log('ℹ️ 用户拒绝全屏或浏览器不支持:', error.message);
@@ -1603,11 +1663,16 @@
                 
                 // 触发全屏（统一入口，确保只触发一次）
                 async triggerFullscreen() {
-                    if (!this.isMobileDevice() || this.hasTriggeredFullscreen) return;
+                    if (!this.isMobileDevice()) return;
+                    
+                    if (this.hasTriggeredFullscreen) {
+                        console.log('⏭️ 已触发过全屏，跳过');
+                        return;
+                    }
                     
                     this.hasTriggeredFullscreen = true;
+                    console.log('🖥️ 触发全屏');
                     await this.requestFullscreen();
-                    console.log('🖥️ 已触发全屏');
                 },
                 
                 // 设置滑动触发全屏
@@ -1671,6 +1736,14 @@
                     });
                 },
                 
+                // 隐藏滑动提示
+                hideSwipeHint() {
+                    if (this.showSwipeHint) {
+                        this.showSwipeHint = false;
+                        console.log('📢 滑动提示已隐藏');
+                    }
+                },
+                
                 // 设置滑动手势（向右滑动打开侧边栏）
                 setupSwipeGestures() {
                     if (!this.isMobileDevice()) return;
@@ -1688,6 +1761,9 @@
                             e.target.closest('a')) {
                             return;
                         }
+                        
+                        // 用户开始滑动，隐藏提示
+                        this.hideSwipeHint();
                         
                         touchStartX = e.touches[0].clientX;
                         touchStartY = e.touches[0].clientY;

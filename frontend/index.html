@@ -149,36 +149,24 @@
             position: relative;
         }
         
-        /* 移动端：初始状态侧边栏半透明模糊 */
+        /* 移动端：侧边栏向右滑动打开 */
         @media (max-width: 768px) {
             .sidebar {
                 position: fixed;
                 left: 0;
                 top: 0;
                 bottom: 0;
-                width: 70%;
-                max-width: 300px;
-                backdrop-filter: blur(20px);
-                background: rgba(255, 255, 255, 0.85);
-                transform: translateX(0);
-                z-index: 50;
-                box-shadow: 2px 0 20px rgba(0, 0, 0, 0.1);
-            }
-            
-            /* 隐藏状态 */
-            .sidebar.hidden {
-                transform: translateX(-100%);
-                box-shadow: none;
-            }
-            
-            /* 全屏显示状态 */
-            .sidebar.fullscreen {
-                width: 100%;
-                max-width: 100%;
-                backdrop-filter: none;
+                width: 80%;
+                max-width: 320px;
                 background: var(--background);
-                box-shadow: none;
+                transform: translateX(-100%);
                 z-index: 1000;
+                box-shadow: 2px 0 20px rgba(0, 0, 0, 0.15);
+            }
+            
+            /* 打开状态 */
+            .sidebar.open {
+                transform: translateX(0);
             }
         }
 
@@ -375,37 +363,10 @@
             transition: filter 0.3s var(--ease-out);
         }
         
-        /* 移动端：侧边栏全屏时，聊天区域模糊 */
+        /* 移动端：主内容区占满 */
         @media (max-width: 768px) {
             .main-content {
                 width: 100%;
-            }
-            
-            .main-content.blurred {
-                filter: blur(8px);
-                pointer-events: none;
-                opacity: 0.5;
-            }
-            
-            /* 滑动提示（仅在侧边栏隐藏时显示） */
-            .swipe-hint {
-                position: fixed;
-                left: 10px;
-                top: 50%;
-                transform: translateY(-50%);
-                font-size: 0.75rem;
-                color: var(--text-secondary);
-                opacity: 0;
-                pointer-events: none;
-                white-space: nowrap;
-                z-index: 10;
-                transition: opacity 0.5s;
-                writing-mode: vertical-rl;
-                text-orientation: mixed;
-            }
-            
-            .swipe-hint.show {
-                opacity: 0.4;
             }
         }
 
@@ -1022,11 +983,7 @@
         <div class="sidebar-overlay" :class="{ active: sidebarOpen }" @click="sidebarOpen = false"></div>
         
         <!-- 侧边栏 -->
-        <div class="sidebar" :class="{ 
-            open: sidebarOpen, 
-            hidden: sidebarState === 'hidden',
-            fullscreen: sidebarState === 'fullscreen'
-        }">
+        <div class="sidebar" :class="{ open: sidebarOpen }">
             <div class="sidebar-header">
                 <h1>🧠 Memory Reconstruction</h1>
                 <p>AI-Powered Memory Analysis</p>
@@ -1078,12 +1035,7 @@
         </div>
 
         <!-- 主内容区 -->
-        <div class="main-content" :class="{ blurred: sidebarState === 'fullscreen' }">
-            <!-- 滑动提示 -->
-            <div class="swipe-hint" :class="{ show: sidebarState === 'hidden' }" v-if="isMobileDevice()">
-                {{ sidebarState === 'hidden' ? '← 滑动查看历史' : '' }}
-            </div>
-            
+        <div class="main-content">
             <!-- 顶部显示区域（点击可显示header） -->
             <div class="header-reveal-zone" 
                  v-if="!headerVisible && isMobileDevice()" 
@@ -1246,13 +1198,9 @@
                     // 其他
                     currentTitle: '新对话',
                     exportMenuSession: null,
-                    hasTriggeredFullscreen: false,  // 记录是否已触发全屏
                     
-                    // 移动端侧边栏状态
-                    sidebarState: 'visible',  // 'visible' | 'hidden' | 'fullscreen'
-                    touchStartX: 0,
-                    touchStartY: 0,
-                    isSwiping: false,
+                    // 移动端全屏控制
+                    hasTriggeredFullscreen: false,
                     
                     // 移动端顶部栏状态
                     headerVisible: true
@@ -1266,7 +1214,10 @@
                 this.setupSwipeGestures();
                 this.setupTouchFullscreen();
                 this.setupKeyboardHandler();
-                this.focusInput();
+                // 移动端不自动聚焦（避免自动弹出键盘）
+                if (!this.isMobileDevice()) {
+                    this.focusInput();
+                }
             },
             
             methods: {
@@ -1348,13 +1299,19 @@
                     this.currentTitle = '新对话';
                     this.sidebarOpen = false;
                     this.headerVisible = true;  // 新建对话时显示顶部栏
-                    this.focusInput();
+                    // 移动端不自动聚焦
+                    if (!this.isMobileDevice()) {
+                        this.focusInput();
+                    }
                 },
                 
                 // 使用示例
                 useExample(text) {
                     this.inputText = text;
-                    this.focusInput();
+                    // 移动端不自动聚焦
+                    if (!this.isMobileDevice()) {
+                        this.focusInput();
+                    }
                 },
                 
                 // 发送消息
@@ -1370,9 +1327,10 @@
                         created_at: new Date().toISOString()
                     });
                     
-                    // 📱 移动端发送消息时，隐藏侧边栏和顶部栏
+                    // 📱 移动端发送消息时，触发全屏、隐藏侧边栏和顶部栏
                     if (this.isMobileDevice()) {
-                        this.hideSidebar();
+                        this.triggerFullscreen();  // 回车发送时触发全屏
+                        this.sidebarOpen = false;
                         this.hideHeader();
                     }
                     
@@ -1392,7 +1350,10 @@
                         this.showToast('发送失败，请重试', 'error');
                     } finally {
                         this.isLoading = false;
-                        this.focusInput();
+                        // 移动端不自动聚焦（避免键盘自动弹出）
+                        if (!this.isMobileDevice()) {
+                            this.focusInput();
+                        }
                     }
                 },
                 
@@ -1640,16 +1601,37 @@
                     }
                 },
                 
-                // 设置触摸触发全屏
+                // 触发全屏（统一入口，确保只触发一次）
+                async triggerFullscreen() {
+                    if (!this.isMobileDevice() || this.hasTriggeredFullscreen) return;
+                    
+                    this.hasTriggeredFullscreen = true;
+                    await this.requestFullscreen();
+                    console.log('🖥️ 已触发全屏');
+                },
+                
+                // 设置滑动触发全屏
                 setupTouchFullscreen() {
                     if (!this.isMobileDevice()) return;
                     
-                    const handleFirstTouch = async () => {
-                        await this.requestFullscreen();
-                        document.removeEventListener('touchstart', handleFirstTouch);
-                    };
+                    const container = document.getElementById('app');
+                    let scrollStartY = 0;
                     
-                    document.addEventListener('touchstart', handleFirstTouch, { once: true });
+                    container.addEventListener('touchstart', (e) => {
+                        scrollStartY = e.touches[0].clientY;
+                    }, { passive: true });
+                    
+                    container.addEventListener('touchmove', (e) => {
+                        if (this.hasTriggeredFullscreen) return;
+                        
+                        const scrollEndY = e.touches[0].clientY;
+                        const deltaY = Math.abs(scrollEndY - scrollStartY);
+                        
+                        // 上下滑动超过 50px 时触发全屏
+                        if (deltaY > 50) {
+                            this.triggerFullscreen();
+                        }
+                    }, { passive: true });
                 },
                 
                 // 设置键盘弹出处理
@@ -1689,71 +1671,75 @@
                     });
                 },
                 
-                // 设置滑动手势
+                // 设置滑动手势（向右滑动打开侧边栏）
                 setupSwipeGestures() {
                     if (!this.isMobileDevice()) return;
                     
                     const container = document.getElementById('app');
+                    let touchStartX = 0;
+                    let touchStartY = 0;
+                    let touchStartTime = 0;
+                    let isSwiping = false;
                     
                     container.addEventListener('touchstart', (e) => {
-                        this.touchStartX = e.touches[0].clientX;
-                        this.touchStartY = e.touches[0].clientY;
-                        this.isSwiping = false;
-                    });
+                        // 如果点击的是输入框或按钮，不处理滑动
+                        if (e.target.closest('.input-area') || 
+                            e.target.closest('button') ||
+                            e.target.closest('a')) {
+                            return;
+                        }
+                        
+                        touchStartX = e.touches[0].clientX;
+                        touchStartY = e.touches[0].clientY;
+                        touchStartTime = Date.now();
+                        isSwiping = false;
+                    }, { passive: true });
                     
                     container.addEventListener('touchmove', (e) => {
-                        if (!this.touchStartX) return;
+                        if (!touchStartX) return;
                         
                         const touchEndX = e.touches[0].clientX;
                         const touchEndY = e.touches[0].clientY;
-                        const deltaX = touchEndX - this.touchStartX;
-                        const deltaY = touchEndY - this.touchStartY;
+                        const deltaX = touchEndX - touchStartX;
+                        const deltaY = touchEndY - touchStartY;
                         
-                        // 判断是否为水平滑动（横向滑动距离 > 纵向滑动距离）
-                        if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 30) {
-                            this.isSwiping = true;
+                        // 判断是否为水平滑动（横向滑动距离 > 纵向滑动距离 * 2）
+                        if (Math.abs(deltaX) > Math.abs(deltaY) * 2 && Math.abs(deltaX) > 20) {
+                            isSwiping = true;
+                            // 如果是水平滑动，阻止默认的页面滚动
+                            if (Math.abs(deltaX) > 30) {
+                                e.preventDefault();
+                            }
                         }
                     });
                     
                     container.addEventListener('touchend', (e) => {
-                        if (!this.touchStartX || !this.isSwiping) {
-                            this.touchStartX = 0;
-                            return;
-                        }
+                        if (!touchStartX) return;
                         
                         const touchEndX = e.changedTouches[0].clientX;
-                        const deltaX = touchEndX - this.touchStartX;
+                        const touchEndY = e.changedTouches[0].clientY;
+                        const deltaX = touchEndX - touchStartX;
+                        const deltaY = touchEndY - touchStartY;
+                        const touchDuration = Date.now() - touchStartTime;
                         
-                        // 向右滑动 > 50px：显示侧边栏
-                        if (deltaX > 50 && this.sidebarState === 'hidden') {
-                            this.showSidebarFullscreen();
-                        }
-                        // 向左滑动 > 50px：隐藏侧边栏
-                        else if (deltaX < -50 && this.sidebarState === 'fullscreen') {
-                            this.hideSidebar();
+                        // 必须是水平滑动，且时间不超过500ms
+                        if (isSwiping && touchDuration < 500) {
+                            // 向右滑动 > 80px：打开侧边栏
+                            if (deltaX > 80 && Math.abs(deltaY) < 100) {
+                                this.sidebarOpen = true;
+                                console.log('👉 向右滑动，打开侧边栏');
+                            }
+                            // 向左滑动 > 80px：关闭侧边栏
+                            else if (deltaX < -80 && Math.abs(deltaY) < 100 && this.sidebarOpen) {
+                                this.sidebarOpen = false;
+                                console.log('👈 向左滑动，关闭侧边栏');
+                            }
                         }
                         
-                        this.touchStartX = 0;
-                        this.isSwiping = false;
-                    });
-                },
-                
-                // 显示侧边栏（全屏模式）
-                showSidebarFullscreen() {
-                    this.sidebarState = 'fullscreen';
-                    console.log('📱 侧边栏全屏显示');
-                },
-                
-                // 隐藏侧边栏
-                hideSidebar() {
-                    this.sidebarState = 'hidden';
-                    console.log('📱 侧边栏隐藏');
-                },
-                
-                // 显示侧边栏（半透明模式）
-                showSidebarVisible() {
-                    this.sidebarState = 'visible';
-                    console.log('📱 侧边栏可见');
+                        touchStartX = 0;
+                        touchStartY = 0;
+                        isSwiping = false;
+                    }, { passive: true });
                 },
                 
                 // 隐藏顶部栏

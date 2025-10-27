@@ -523,15 +523,30 @@
         .messages-container {
             flex: 1;
             overflow-y: auto;
-            padding: var(--space-xl);
+            padding: var(--space-sm) var(--space-md);
             scroll-behavior: smooth;
+        }
+        
+        /* 移动端：最小化留白 */
+        @media (max-width: 768px) {
+            .messages-container {
+                padding: var(--space-xs) var(--space-sm);
+                padding-bottom: calc(env(safe-area-inset-bottom) + var(--space-sm));
+            }
         }
 
         .message {
-            margin-bottom: var(--space-xl);
+            margin-bottom: var(--space-md);
             animation: message-in 0.4s var(--ease-out);
             opacity: 0;
             animation-fill-mode: forwards;
+        }
+        
+        /* 移动端：减少消息间距 */
+        @media (max-width: 768px) {
+            .message {
+                margin-bottom: var(--space-sm);
+            }
         }
 
         @keyframes message-in {
@@ -584,26 +599,28 @@
         }
 
         .message-content {
-            background: var(--surface);
-            padding: var(--space-lg);
+            background: transparent;
+            padding: var(--space-md);
             border-radius: var(--radius-lg);
-            border: 1px solid var(--border);
+            border: none;
             line-height: 1.7;
-            box-shadow: var(--shadow-sm);
+            box-shadow: none;
             position: relative;
         }
 
         .message.user .message-content {
-            background: linear-gradient(135deg, rgba(99, 102, 241, 0.05), rgba(139, 92, 246, 0.05));
-            border-color: var(--primary-light);
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(139, 92, 246, 0.08));
+            border: 1px solid rgba(99, 102, 241, 0.15);
+            box-shadow: 0 2px 8px rgba(99, 102, 241, 0.05);
         }
         
-        /* AI助手消息框 - 透明背景 */
+        /* AI助手消息框 - 完全透明 */
         .message.assistant .message-content {
             background: transparent;
             border: none;
             box-shadow: none;
             padding-left: 0;
+            padding-right: 0;
         }
         
         /* AI头像和标签 - 有内容时淡出 */
@@ -686,10 +703,25 @@
 
         /* ===== 输入区域 ===== */
         .input-area {
-            padding: var(--space-lg) var(--space-xl);
-            background: var(--background);
-            border-top: 1px solid var(--border);
-            box-shadow: 0 -4px 6px -1px rgba(0, 0, 0, 0.05);
+            padding: var(--space-md) var(--space-lg);
+            background: transparent;
+            border-top: none;
+            box-shadow: none;
+            transition: transform 0.2s;
+        }
+        
+        /* 移动端：键盘弹出时自动调整位置 */
+        @media (max-width: 768px) {
+            .input-area {
+                padding: var(--space-sm) var(--space-md);
+                padding-bottom: calc(env(safe-area-inset-bottom) + var(--space-sm));
+                background: rgba(255, 255, 255, 0.95);
+                backdrop-filter: blur(10px);
+            }
+            
+            .input-area.keyboard-visible {
+                transform: translateY(0);
+            }
         }
 
         .input-wrapper {
@@ -904,34 +936,6 @@
                 font-size: 16px; /* 防止iOS自动缩放 */
             }
             
-            .mobile-menu-btn {
-                display: flex !important;
-            }
-        }
-
-        /* 移动端菜单按钮 */
-        .mobile-menu-btn {
-            display: none;
-            position: fixed;
-            bottom: var(--space-lg);
-            right: var(--space-lg);
-            width: 56px;
-            height: 56px;
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
-            color: white;
-            border: none;
-            border-radius: var(--radius-full);
-            font-size: 1.5rem;
-            cursor: pointer;
-            box-shadow: var(--shadow-xl);
-            z-index: 999;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.3s var(--ease-out);
-        }
-
-        .mobile-menu-btn:active {
-            transform: scale(0.95);
         }
 
         /* 遮罩 */
@@ -1198,10 +1202,6 @@
             </div>
         </div>
         
-        <!-- 移动端菜单按钮 -->
-        <button class="mobile-menu-btn" @click="sidebarOpen = !sidebarOpen">
-            {{ sidebarOpen ? '✕' : '☰' }}
-        </button>
     </div>
 
     <script>
@@ -1264,6 +1264,8 @@
                 this.setupTextareaAutoResize();
                 this.setupKeyboardShortcuts();
                 this.setupSwipeGestures();
+                this.setupTouchFullscreen();
+                this.setupKeyboardHandler();
                 this.focusInput();
             },
             
@@ -1368,8 +1370,7 @@
                         created_at: new Date().toISOString()
                     });
                     
-                    // 📱 移动端首次发送消息时，请求全屏并隐藏侧边栏和顶部栏
-                    await this.requestFullscreen();
+                    // 📱 移动端发送消息时，隐藏侧边栏和顶部栏
                     if (this.isMobileDevice()) {
                         this.hideSidebar();
                         this.hideHeader();
@@ -1637,6 +1638,55 @@
                     } catch (error) {
                         console.log('ℹ️ 用户拒绝全屏或浏览器不支持:', error.message);
                     }
+                },
+                
+                // 设置触摸触发全屏
+                setupTouchFullscreen() {
+                    if (!this.isMobileDevice()) return;
+                    
+                    const handleFirstTouch = async () => {
+                        await this.requestFullscreen();
+                        document.removeEventListener('touchstart', handleFirstTouch);
+                    };
+                    
+                    document.addEventListener('touchstart', handleFirstTouch, { once: true });
+                },
+                
+                // 设置键盘弹出处理
+                setupKeyboardHandler() {
+                    if (!this.isMobileDevice()) return;
+                    
+                    const inputField = this.$refs.inputField;
+                    if (!inputField) return;
+                    
+                    // 监听输入框焦点
+                    inputField.addEventListener('focus', () => {
+                        setTimeout(() => {
+                            // 滚动到输入框位置
+                            inputField.scrollIntoView({ 
+                                behavior: 'smooth', 
+                                block: 'center' 
+                            });
+                        }, 300); // 等待键盘弹出
+                    });
+                    
+                    // 监听窗口大小变化（键盘弹出/收起）
+                    let lastHeight = window.innerHeight;
+                    window.addEventListener('resize', () => {
+                        const currentHeight = window.innerHeight;
+                        const inputArea = document.querySelector('.input-area');
+                        
+                        if (currentHeight < lastHeight) {
+                            // 键盘弹出
+                            inputArea?.classList.add('keyboard-visible');
+                            this.scrollToBottom();
+                        } else {
+                            // 键盘收起
+                            inputArea?.classList.remove('keyboard-visible');
+                        }
+                        
+                        lastHeight = currentHeight;
+                    });
                 },
                 
                 // 设置滑动手势

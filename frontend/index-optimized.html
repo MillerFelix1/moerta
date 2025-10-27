@@ -568,6 +568,7 @@
             mounted() {
                 this.loadSessions();
                 this.setupMobileGestures();
+                this.setupKeyboardFix();
                 
                 // 5秒后隐藏提示
                 setTimeout(() => this.showSwipeHint = false, 5000);
@@ -606,6 +607,42 @@
                             }
                         }
                     }, { passive: true });
+                },
+
+                // 修复全屏键盘遮挡问题
+                setupKeyboardFix() {
+                    const inputField = this.$refs.inputField;
+                    if (!inputField) return;
+                    
+                    // 输入框获得焦点时
+                    inputField.addEventListener('focus', () => {
+                        setTimeout(() => {
+                            // 滚动到输入框位置
+                            inputField.scrollIntoView({ 
+                                behavior: 'smooth', 
+                                block: 'nearest',
+                                inline: 'nearest'
+                            });
+                        }, 300); // 等待键盘弹出动画
+                    });
+                    
+                    // 监听窗口大小变化（键盘弹出/收起）
+                    let lastHeight = window.innerHeight;
+                    window.visualViewport?.addEventListener('resize', () => {
+                        const currentHeight = window.visualViewport.height;
+                        
+                        if (currentHeight < lastHeight) {
+                            // 键盘弹出
+                            setTimeout(() => {
+                                inputField.scrollIntoView({ 
+                                    behavior: 'smooth', 
+                                    block: 'end'
+                                });
+                            }, 100);
+                        }
+                        
+                        lastHeight = currentHeight;
+                    });
                 },
 
                 renderMarkdown(content) {
@@ -750,6 +787,8 @@
 
                                         if (parsed.text) {
                                             assistantMessage.content += parsed.text;
+                                            // 立即更新视图并滚动
+                                            await this.$nextTick();
                                             this.scrollToBottom();
                                         }
                                     } catch (e) {

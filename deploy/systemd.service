@@ -1,0 +1,42 @@
+# Systemd服务配置文件
+# 复制到 /etc/systemd/system/data-expert.service
+
+[Unit]
+Description=Memory Reconstruction Platform - AI Agent Testing Service
+Documentation=https://shangyu.icu
+After=network.target
+
+[Service]
+Type=simple
+# Alibaba Cloud Linux / RHEL / CentOS 使用 nginx 用户
+# Ubuntu/Debian 使用 www-data 用户
+User=nginx
+Group=nginx
+WorkingDirectory=/var/www/shangyu.icu/backend
+Environment="PATH=/usr/bin:/usr/local/bin"
+Environment="PYTHONUNBUFFERED=1"
+
+# 执行命令（尝试使用 Python 3.9，如果不存在则使用 Python 3）
+ExecStart=/bin/bash -c 'if command -v python3.9 &> /dev/null; then python3.9 server.py; else python3 server.py; fi'
+
+# 自动重启配置
+Restart=always
+RestartSec=10
+StartLimitInterval=60
+StartLimitBurst=3
+
+# 日志配置
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=data-expert
+
+# 安全配置
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/www/shangyu.icu/backend/data
+
+[Install]
+WantedBy=multi-user.target
+

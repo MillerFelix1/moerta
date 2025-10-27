@@ -1,0 +1,73 @@
+# ===================================
+# Memory Reconstruction Platform
+# Docker Compose 配置 v2.0
+# ===================================
+
+services:
+  # ===== 后端服务 =====
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: memory-reconstruction-backend:latest
+    container_name: memory-reconstruction-backend
+    restart: always
+    ports:
+      - "8000:8000"
+    volumes:
+      # 持久化数据库
+      - ./backend/data:/app/data
+      # 挂载配置文件
+      - ./backend/.env:/app/.env:ro
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8000
+      - PYTHONUNBUFFERED=1
+      - DASHSCOPE_API_KEY=sk-31d4c4895a6d4a959fa9f4ff029515ac
+      - DASHSCOPE_APP_ID=6596ab6827f445f08abc4194be485bc1
+      - DATABASE_PATH=./data/sessions.db
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - memory-net
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ===== Nginx 反向代理 =====
+  nginx:
+    image: nginx:alpine
+    container_name: memory-reconstruction-nginx
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      # Nginx 配置
+      - ./deploy/nginx-docker.conf:/etc/nginx/conf.d/default.conf:ro
+      # 前端静态文件（优化版本）
+      - ./frontend:/usr/share/nginx/html:ro
+      # SSL 证书（如果有）
+      - ./ssl:/etc/nginx/ssl:ro
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - memory-net
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  memory-net:
+    driver: bridge
+    name: memory-reconstruction-network
+
